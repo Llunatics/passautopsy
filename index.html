@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passautopsy — Lab Bedah Password</title>
+<meta name="description" content="Lab bedah password 100% client-side: skor entropi, deteksi pola lemah, estimasi brute-force MD5 vs bcrypt.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">⚕</span>
+    <div>
+      <h1>PASSAUTOPSY</h1>
+      <p class="tagline">Lab bedah password — 100% client-side</p>
+    </div>
+  </div>
+  <span class="badge">🔒 tidak ada data keluar dari browser</span>
+</header>
+
+<main>
+  <section class="card">
+    <label for="pw">Password yang dibedah</label>
+    <div class="input-row">
+      <input id="pw" type="password" placeholder="Ketik password di sini…" autocomplete="off" spellcheck="false">
+      <button id="toggle" type="button" title="Tampilkan/sembunyikan">👁</button>
+      <button id="clear" type="button" title="Bersihkan">✕</button>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter"><div id="meterFill"></div></div>
+      <div class="meter-head">
+        <span id="strengthLabel" class="strength">—</span>
+        <span id="entropyBits" class="bits">0 bit</span>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat"><span class="k">Panjang</span><span class="v" id="stLen">0</span></div>
+      <div class="stat"><span class="k">Charset</span><span class="v" id="stCharset">—</span></div>
+      <div class="stat"><span class="k">Entropi mentah</span><span class="v" id="stRaw">0 bit</span></div>
+      <div class="stat"><span class="k">Entropi disesuaikan</span><span class="v" id="stAdj">0 bit</span></div>
+    </div>
+    <div id="charsetChips" class="chips"></div>
+  </section>
+
+  <section class="card">
+    <h2>Temuan Pola</h2>
+    <ul id="findings" class="findings"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Estimasi Waktu Brute-Force</h2>
+    <p class="note">Rata-rata kasus (setengah keyspace) dari entropi yang <em>disesuaikan</em>.</p>
+    <table class="crack">
+      <thead>
+        <tr><th>Hash</th><th>Kecepatan</th><th>Estimasi waktu</th></tr>
+      </thead>
+      <tbody id="crackBody"></tbody>
+    </table>
+    <p class="note">MD5 ≈ hash cepat (GPU modern, ~10 miliar/detik) · bcrypt ≈ hash lambat yang disengaja (~10/detik, cost 12). Perbandingan ini menunjukkan kenapa password lemah hancur instan di MD5 tapi bcrypt memberi napas.</p>
+  </section>
+</main>
+
+<footer>
+  <p>Passautopsy · MIT · semua komputasi terjadi di perangkatmu</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
