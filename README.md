@@ -10,7 +10,7 @@ Lab bedah password **100% client-side**: skor entropi, deteksi pola lemah (terma
   - Sekuens berurutan (`abc`, `123`, `cba`, …)
   - Repetisi karakter & blok (`aaa`, `abab`)
   - Leetspeak (`P4ssw0rd` tetap ketahuan)
-  - Kata kamus Indonesia (~180 kata: `bismillah`, `sayang`, `cinta`, `indonesia`, …)
+  - Kata kamus Indonesia (~240 kata: `bismillah`, `sayang`, `cinta`, `indonesia`, …)
   - Nama umum Indonesia (~80 nama)
   - Tanggal lahir (`DDMMYYYY`, `YYYYMMDD`, `DDMMYY`, tahun 19xx/20xx)
   - Daftar password paling umum (entropi disesuaikan → 0)
