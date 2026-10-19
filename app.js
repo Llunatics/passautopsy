@@ -39,7 +39,7 @@ const ID_NAMES = [
 "rifki","wahyu","danang","eko","taufik","arif","farhan","hakim","irfan","kusuma",
 "lestari","maharani","ningrum","utami","wijaya","santoso","saputra","pratama",
 "ramadhan","setiawan","nugroho","hartono","susanto","gunawan","wibowo","kurnia",
-"maulana","firmansyah","ramadhan"
+"maulana","firmansyah"
 ];
 
 const COMMON_PASSWORDS = [
@@ -92,7 +92,13 @@ function findKeyboardWalks(pw) {
       }
     }
   }
-  return out.slice(0, 5);
+  // Satu region walk hanya dihitung sekali: buang fragmen yang merupakan
+  // substring dari fragmen lain yang lebih panjang ("qwert" & "qwer" dari
+  // "qwerty" bukan dua temuan terpisah).
+  const frags = out.map(o => o.frag).sort((a, b) => b.length - a.length);
+  const kept = frags.filter((f, i) =>
+    !frags.slice(0, i).some(longer => longer.includes(f)));
+  return kept.slice(0, 5).map(frag => ({ frag }));
 }
 
 function findSequences(pw) {
@@ -159,7 +165,9 @@ function findDateHits(pw) {
   }
   for (let i = 0; i + 6 <= digits.length; i++) {
     const s = digits.slice(i, i + 6);
-    const d = +s.slice(0, 2), m = +s.slice(2, 4), y = 2000 + (+s.slice(4, 6));
+    const d = +s.slice(0, 2), m = +s.slice(2, 4);
+    // pivot 50: "98" -> 1998, "25" -> 2025 (tanggal lahir pra-2000 ikut kedeteksi)
+    const yy = +s.slice(4, 6), y = yy >= 50 ? 1900 + yy : 2000 + yy;
     if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 1950 && y <= 2026 && !out.some(o => o.frag.includes(s) || s.includes(o.frag)))
       out.push({ frag: s, fmt: "DDMMYY" });
   }

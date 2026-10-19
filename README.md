@@ -26,6 +26,14 @@ python3 -m http.server 8000
 # buka http://localhost:8000
 ```
 
+## Tes
+
+```bash
+node tests/run.js   # 17 asersi, tanpa dependensi
+```
+
+Mencakup regresi deteksi (keyboard walk, sekuens, repetisi, leetspeak, kamus, nama, tanggal, password umum) dan kewarasan estimasi waktu.
+
 ## Cara kerja (ringkas)
 
 | Komponen | Metode |
@@ -37,13 +45,17 @@ python3 -m http.server 8000
 
 Setiap temuan pola mengurangi entropi efektif karena pola = ruang pencarian yang jauh lebih kecil dari keyspace penuh.
 
+Dua perilaku penalti diperketat pada audit 2026-10-19: fragmen keyboard walk yang tumpang tindih dihitung **sekali per region** (bukan per potongan 3–5 huruf), dan DDMMYY memakai **pivot 50** (`98` → 1998) sehingga tanggal lahir pra-2000 ikut terdeteksi.
+
 ## Struktur
 
 ```
 passautopsy/
 ├── index.html   # UI
 ├── styles.css   # tema gelap, responsif
-└── app.js       # seluruh logika analisis (tanpa dependensi)
+├── app.js       # seluruh logika analisis (tanpa dependensi)
+└── tests/
+    └── run.js   # uji regresi node (17 asersi)
 ```
 
 `app.js` mengekspor `analyzePassword`, `crackTime`, `formatDuration`, `detectCharset` via `module.exports` saat dijalankan di Node — logikanya bisa diuji tanpa browser.
