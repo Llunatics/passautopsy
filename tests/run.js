@@ -70,4 +70,52 @@ ok(crackTime(0, 1e10) === "< 1 detik", "0 bit -> < 1 detik");
 ok(formatDuration(90).includes("menit"), "90 detik -> menit");
 ok(formatDuration(1e12).includes("tahun"), "1e12 detik -> tahun");
 
+// 12. password sangat panjang: tidak overflow jadi "∞"
+{
+  const longPw = "k7#Qm2$vL9@nX4!".repeat(20); // 280 char, ~1837 bit
+  const t = crackTime(analyzePassword(longPw).adjustedBits, 1e10);
+  ok(t !== "∞" && t.includes("tahun") && t.includes("10^"), "200+ char -> estimasi log10, dapat " + t);
+  const tb = crackTime(analyzePassword(longPw).adjustedBits, 10);
+  ok(tb !== "∞" && tb.includes("tahun"), "bcrypt 200+ char -> tahun");
+}
+
+// 13. tanggal duplikat dalam satu digit-run hanya dihitung sekali
+{
+  const t = texts("x1508199815081998y").filter(x => x.includes("15081998"));
+  ok(t.length === 1, "tanggal berulang -> 1 temuan, dapat " + t.length);
+}
+
+// 14. satu region repetisi dihitung sekali ("aaaa" bukan karakter+blok)
+{
+  const t = texts("xaaaay").filter(x => x.includes("Repetisi"));
+  ok(t.length === 1 && t[0].includes("karakter berulang"), "'aaaa' -> 1 temuan karakter berulang");
+  const b = texts("xabababy").filter(x => x.includes("blok berulang"));
+  ok(b.length === 1, "'ababab' -> 1 temuan blok berulang");
+}
+
+// 15. sekuens tidak bocor ke kelas lain ("789:" -> "789" saja)
+{
+  const w = texts("x789:yz.").filter(t => t.includes("Sekuens"))
+    .map(t => t.match(/"([^"]+)"/)[1]);
+  ok(w.length === 1 && w[0] === "789", "sekuens digit berhenti di batas kelas, dapat " + JSON.stringify(w));
+}
+
+// 16. leetspeak password umum tetap 0 bit
+ok(analyzePassword("P4ssw0rd").adjustedBits === 0, "'P4ssw0rd' -> 0 bit");
+
+// 17. input aneh tidak crash
+{
+  const ws = analyzePassword("   ");
+  ok(ws.adjustedBits === 0 && ws.label === "Sangat Lemah", "spasi saja aman");
+  const uni = analyzePassword("🔑kunc1R4has1a🔒");
+  ok(uni.length === 16 && isFinite(uni.adjustedBits), "unicode aman, panjang UTF-16 " + uni.length);
+  ok(analyzePassword("a".repeat(10000)).adjustedBits === 0, "10k char aman");
+}
+
+// 18. label kekuatan waras untuk password lemah nyata
+{
+  const weak = analyzePassword("Kucing123"); // pendek + kamus + sekuens
+  ok(["Sangat Lemah", "Lemah"].includes(weak.label), "Kucing123 lemah, dapat " + weak.label);
+}
+
 console.log("\n" + n + " asersi lolos.");

@@ -29,7 +29,8 @@ python3 -m http.server 8000
 ## Tes
 
 ```bash
-node tests/run.js   # 17 asersi, tanpa dependensi
+node tests/run.js   # 28 asersi logika, tanpa dependensi
+node tests/ui.js    # 19 asersi interaksi UI sungguhan (butuh jsdom: npm i -D jsdom)
 ```
 
 Mencakup regresi deteksi (keyboard walk, sekuens, repetisi, leetspeak, kamus, nama, tanggal, password umum) dan kewarasan estimasi waktu.
@@ -39,7 +40,7 @@ Mencakup regresi deteksi (keyboard walk, sekuens, repetisi, leetspeak, kamus, na
 | Komponen | Metode |
 |---|---|
 | Entropi mentah | `panjang × log₂(ukuran charset terpakai)` |
-| Entropi disesuaikan | entropi mentah − penalti per temuan pola (min. 0) |
+| Entropi disesuaikan | entropi mentah − penalti per temuan pola (min. 0); penalti repetisi **berskala dengan panjang** (tiap karakter berulang di luar unit pertama ≈ 0 bit nyata) |
 | Label kekuatan | <28 Sangat Lemah · <36 Lemah · <60 Sedang · <80 Kuat · ≥80 Sangat Kuat |
 | Estimasi crack | `2^(bit−1) / hash-per-detik` (rata-rata kasus) |
 

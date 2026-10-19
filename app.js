@@ -103,16 +103,18 @@ function findKeyboardWalks(pw) {
 
 function findSequences(pw) {
   const out = [];
+  const inClass = (code, a) =>
+    (a >= 48 && a <= 57 && code >= 48 && code <= 57) ||
+    (a >= 65 && a <= 90 && code >= 65 && code <= 90) ||
+    (a >= 97 && a <= 122 && code >= 97 && code <= 122);
   for (let i = 0; i + 2 < pw.length; i++) {
     const a = pw.charCodeAt(i), b = pw.charCodeAt(i + 1), c = pw.charCodeAt(i + 2);
     const asc = b === a + 1 && c === b + 1, desc = b === a - 1 && c === b - 1;
-    const sameClass =
-      (a >= 48 && a <= 57 && b >= 48 && b <= 57 && c >= 48 && c <= 57) ||
-      (a >= 65 && a <= 90 && b >= 65 && b <= 90 && c >= 65 && c <= 90) ||
-      (a >= 97 && a <= 122 && b >= 97 && b <= 122 && c >= 97 && c <= 122);
+    const sameClass = inClass(b, a) && inClass(c, a);
     if ((asc || desc) && sameClass) {
       let j = i + 3;
-      while (j < pw.length && pw.charCodeAt(j) === pw.charCodeAt(j - 1) + (asc ? 1 : -1)) j++;
+      // Perpanjangan wajib tetap di kelas karakter yang sama ("789" + ":" bukan sekuens digit).
+      while (j < pw.length && pw.charCodeAt(j) === pw.charCodeAt(j - 1) + (asc ? 1 : -1) && inClass(pw.charCodeAt(j), a)) j++;
       const frag = pw.slice(i, j);
       if (!out.some(o => frag.includes(o.frag) || o.frag.includes(frag))) out.push({ frag });
       i = j - 1;
@@ -123,10 +125,19 @@ function findSequences(pw) {
 
 function findRepeats(pw) {
   const out = [];
-  const m1 = pw.match(/(.)\1{2,}/g);
-  if (m1) m1.slice(0, 5).forEach(f => out.push({ kind: "karakter berulang", frag: f }));
-  const m2 = pw.match(/(.{2,4})\1{1,}/g);
-  if (m2) m2.slice(0, 5).forEach(f => out.push({ kind: "blok berulang", frag: f }));
+  const spans = []; // region yang sudah diklaim "karakter berulang"
+  for (const m of pw.matchAll(/(.)\1{2,}/g)) {
+    spans.push([m.index, m.index + m[0].length]);
+    out.push({ kind: "karakter berulang", frag: m[0], unit: 1 });
+    if (out.length >= 5) break;
+  }
+  for (const m of pw.matchAll(/(.{2,4})\1{1,}/g)) {
+    const s = m.index, e = m.index + m[0].length;
+    // Satu region repetisi dihitung sekali: "aaaa" = karakter berulang, bukan blok juga.
+    if (spans.some(([a, b]) => s < b && e > a)) continue;
+    out.push({ kind: "blok berulang", frag: m[0], unit: m[1].length });
+    if (out.length >= 5) break;
+  }
   return out.slice(0, 5);
 }
 
@@ -160,8 +171,8 @@ function findDateHits(pw) {
     const s = digits.slice(i, i + 8);
     const d1 = +s.slice(0, 2), m1 = +s.slice(2, 4), y1 = +s.slice(4, 8);
     const y2 = +s.slice(0, 4), m2 = +s.slice(4, 6), d2 = +s.slice(6, 8);
-    if (valid(d1, m1, y1)) out.push({ frag: s, fmt: "DDMMYYYY" });
-    else if (valid(d2, m2, y2)) out.push({ frag: s, fmt: "YYYYMMDD" });
+    if (valid(d1, m1, y1)) { if (!out.some(o => o.frag === s)) out.push({ frag: s, fmt: "DDMMYYYY" }); }
+    else if (valid(d2, m2, y2)) { if (!out.some(o => o.frag === s)) out.push({ frag: s, fmt: "YYYYMMDD" }); }
   }
   for (let i = 0; i + 6 <= digits.length; i++) {
     const s = digits.slice(i, i + 6);
@@ -200,9 +211,13 @@ function analyzePassword(pw) {
     findings.push({ sev: "warning", text: `Sekuens berurutan: "${s.frag}".`, penalty: 8 });
     penalty += 8;
   }
+  const bitsPerChar = cs.size > 0 ? Math.log2(cs.size) : 0;
   for (const r of findRepeats(pw)) {
-    findings.push({ sev: "info", text: `Repetisi (${r.kind}): "${r.frag}".`, penalty: 6 });
-    penalty += 6;
+    // Penalti skala dengan panjang repetisi: tiap karakter berulang di luar
+    // unit pertama praktis menambah ~0 bit entropi nyata.
+    const p = Math.round(6 + Math.max(0, r.frag.length - r.unit) * bitsPerChar);
+    findings.push({ sev: "info", text: `Repetisi (${r.kind}): "${r.frag}".`, penalty: p });
+    penalty += p;
   }
   for (const h of findDictionaryHits(pw)) {
     findings.push({
@@ -252,7 +267,13 @@ function formatDuration(seconds) {
 
 function crackTime(bits, ratePerSec) {
   if (bits <= 0) return formatDuration(0.001);
-  return formatDuration(Math.pow(2, bits - 1) / ratePerSec);
+  const seconds = Math.pow(2, bits - 1) / ratePerSec;
+  if (isFinite(seconds)) return formatDuration(seconds);
+  // Password sangat panjang (>~1024 bit): 2^(bit-1) overflow ke Infinity.
+  // Hitung via log10 agar tetap dapat estimasi yang bermakna.
+  const log10y = (bits - 1) * Math.log10(2) - Math.log10(ratePerSec) - Math.log10(31557600);
+  const exp = Math.floor(log10y), mant = Math.pow(10, log10y - exp);
+  return `~${mant.toFixed(1).replace(".", ",")} × 10^${exp} tahun`;
 }
 
 /* ============ UI (browser saja) ============ */
