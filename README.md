@@ -56,7 +56,8 @@ passautopsy/
 ├── styles.css   # tema gelap, responsif
 ├── app.js       # seluruh logika analisis (tanpa dependensi)
 └── tests/
-    └── run.js   # uji regresi node (17 asersi)
+    ├── run.js   # uji regresi logika (28 asersi)
+    └── ui.js    # uji interaksi UI via jsdom (19 asersi)
 ```
 
 `app.js` mengekspor `analyzePassword`, `crackTime`, `formatDuration`, `detectCharset` via `module.exports` saat dijalankan di Node — logikanya bisa diuji tanpa browser.
