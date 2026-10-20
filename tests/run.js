@@ -1,7 +1,7 @@
 /* Uji regresi passautopsy — node tests/run.js (tanpa dependensi) */
 "use strict";
 const assert = require("assert");
-const { analyzePassword, crackTime, formatDuration } = require("../app.js");
+const { analyzePassword, crackTime, formatDuration, detectCharset } = require("../app.js");
 
 const texts = pw => analyzePassword(pw).findings.map(f => f.text);
 let n = 0;
@@ -117,5 +117,67 @@ ok(analyzePassword("P4ssw0rd").adjustedBits === 0, "'P4ssw0rd' -> 0 bit");
   const weak = analyzePassword("Kucing123"); // pendek + kamus + sekuens
   ok(["Sangat Lemah", "Lemah"].includes(weak.label), "Kucing123 lemah, dapat " + weak.label);
 }
+
+
+// 19. keyboard walk 3-char tetap kedeteksi (deep-8 P01)
+ok(texts("xxasdxx99!").some(t => t.startsWith("Keyboard walk") && t.includes('"asd"')),
+   "walk 3-char 'asd' kedeteksi");
+
+// 20. charset simbol dihitung 32 (deep-8 P08)
+ok(detectCharset("abCD12!@").size === 94,
+   "simbol = 32 -> size 94, dapat " + detectCharset("abCD12!@").size);
+
+// 21. batas formatDuration tepat 60 detik -> menit (deep-8 P09)
+ok(formatDuration(60) === "1,00 menit",
+   "60 detik -> '1,00 menit', dapat " + formatDuration(60));
+
+// 22. ambang label: adjusted 25.6 -> Sangat Lemah (deep-8 P11)
+ok(analyzePassword("Kucing12").label === "Sangat Lemah",
+   "Kucing12 Sangat Lemah, dapat " + analyzePassword("Kucing12").label);
+
+// 23. kata kamus 4-huruf tetap kedeteksi (deep-8 P12)
+ok(texts("Bali2024!x").some(t => t.includes('"bali"')),
+   "kamus 4-huruf 'bali' kedeteksi");
+
+// 24. nama via leetspeak tetap kedeteksi (deep-8 P13)
+ok(texts("Bud1Santoso9!").some(t => t.includes('"budi"')),
+   "nama leet 'bud1' -> 'budi' kedeteksi");
+
+// 25. password tepat 8 char tidak ditandai terlalu pendek (deep-8 P14)
+ok(!texts("Abcdef12").some(t => t.includes("Terlalu pendek")),
+   "8 char bukan 'terlalu pendek'");
+
+// 26. sekuens 3-char di ujung persis string tetap kedeteksi (deep-8 P15)
+{
+  const s = texts("xxabc").filter(t => t.includes("Sekuens"));
+  ok(s.length === 1 && s[0].includes('"abc"'),
+     "sekuens ujung 'abc' kedeteksi, dapat " + JSON.stringify(s));
+}
+
+// 27. estimasi log10 tepat, tidak 2x meleset (deep-8 P16)
+{
+  const bits = analyzePassword("k7#Qm2$vL9@nX4!".repeat(20)).adjustedBits;
+  ok(crackTime(bits, 1e10) === "~1,4 × 10^574 tahun",
+     "estimasi log10 tepat, dapat " + crackTime(bits, 1e10));
+}
+
+// 28. penalti keyboard walk = 12 per temuan (deep-8 P18)
+{
+  const ps = analyzePassword("Qwerty!xZ4#9wW").findings
+    .filter(f => f.text.startsWith("Keyboard walk")).map(f => f.penalty);
+  ok(ps.length === 2 && ps.every(p => p === 12),
+     "penalti walk 12, dapat " + JSON.stringify(ps));
+}
+
+// 29. charset huruf besar dihitung (deep-8 P19)
+{
+  const cs = detectCharset("Ab1");
+  ok(cs.sets.includes("A–Z") && cs.size === 62,
+     "A–Z dihitung (size 62), dapat " + JSON.stringify(cs));
+}
+
+// 30. tanggal 8-digit modern (2001–2026) kedeteksi (deep-8 P20)
+ok(texts("lahir15082025.").some(t => t.includes("15082025") && t.includes("DDMMYYYY")),
+   "DDMMYYYY 15-08-2025 kedeteksi");
 
 console.log("\n" + n + " asersi lolos.");
